@@ -1,8 +1,8 @@
 """
-Log Sentinel - Blue Team Log Analyzer
-======================================
-A Python toolkit for loading, parsing, and analyzing log files
-from common server formats (Apache, Nginx, Syslog, etc.).
+Log Sentinel - Analyseur de Logs Blue Team
+===========================================
+Boîte à outils Python pour charger, parser et analyser des fichiers de logs
+issus des formats serveur courants (Apache, Nginx, Syslog, etc.).
 """
 
 __version__ = "0.1.0"
