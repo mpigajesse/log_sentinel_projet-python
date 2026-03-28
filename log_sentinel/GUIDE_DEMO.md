@@ -18,8 +18,11 @@
 # Se placer dans le bon dossier
 cd "H:\Mon Drive\NAOMIE_MASTER\Python\log_sentinel_projet-python\log_sentinel"
 
-# Activer l'environnement virtuel
-"H:\Mon Drive\NAOMIE_MASTER\Python\env\Scripts\python.exe" --version
+# Activer l'environnement virtuel (Windows)
+env\Scripts\activate
+
+# Vérifier que Python est bien actif
+python --version
 ```
 
 ---
@@ -52,7 +55,7 @@ dir /s /b *.py
 ### Commande à exécuter :
 
 ```bash
-"H:\Mon Drive\NAOMIE_MASTER\Python\env\Scripts\python.exe" main.py -f samples/sample_access.log
+python main.py -f samples/sample_access.log
 ```
 
 ### Ce que le jury va voir — points à commenter :
@@ -91,7 +94,7 @@ Pointer chaque type au jury :
 ### Commande à exécuter :
 
 ```bash
-"H:\Mon Drive\NAOMIE_MASTER\Python\env\Scripts\python.exe" main.py -f samples/sample_access.log --check-ip
+python main.py -f samples/sample_access.log --check-ip
 ```
 
 > **Ce qu'on dit au jury :**
@@ -107,7 +110,7 @@ Pointer chaque type au jury :
 ### Commande à exécuter :
 
 ```bash
-"H:\Mon Drive\NAOMIE_MASTER\Python\env\Scripts\python.exe" main.py -f samples/sample_access.log
+python main.py -f samples/sample_access.log
 ```
 
 Puis ouvrir le fichier généré :
@@ -130,10 +133,10 @@ reports/report.html
 
 ```bash
 # Seuil brute-force à 3 tentatives (plus sensible)
-"H:\Mon Drive\NAOMIE_MASTER\Python\env\Scripts\python.exe" main.py -f samples/sample_access.log --bf-threshold 3
+python main.py -f samples/sample_access.log --bf-threshold 3
 
 # Sans rapport HTML
-"H:\Mon Drive\NAOMIE_MASTER\Python\env\Scripts\python.exe" main.py -f samples/sample_access.log --no-report
+python main.py -f samples/sample_access.log --no-report
 ```
 
 > *"L'interface CLI avec argparse permet de personnaliser le comportement
@@ -144,7 +147,7 @@ reports/report.html
 ## Étape 6 — Tests unitaires (1 min)
 
 ```bash
-"H:\Mon Drive\NAOMIE_MASTER\Python\env\Scripts\python.exe" -m unittest discover -s tests -v
+python -m unittest discover -s tests -v
 ```
 
 > **Ce qu'on dit au jury :**
