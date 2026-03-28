@@ -34,6 +34,7 @@ un tableau de bord terminal **Rich** et un **rapport HTML** autonome.
 | Scanners connus | `sqlmap`, `nikto`, `nmap`, `burp`... |
 | OSINT | Géolocalisation IP via `ip-api.com` |
 | Rapport HTML | Dashboard complet, score de risque, dark theme |
+| **Interface Web** | **Tableau de bord Streamlit interactif** |
 
 ---
 
@@ -42,6 +43,7 @@ un tableau de bord terminal **Rich** et un **rapport HTML** autonome.
 ```
 log_sentinel/
 ├── main.py                  # Point d'entrée CLI (argparse + Rich)
+├── app.py                   # Interface Web Streamlit (tableau de bord)
 ├── requirements.txt         # Dépendances Python
 ├── README.md                # Documentation
 ├── src/
@@ -87,11 +89,35 @@ pip install -r requirements.txt
 ```
 requests>=2.31.0   # Requêtes HTTP (OSINT)
 rich>=13.7.0       # Interface terminal colorée
+streamlit>=1.32.0  # Interface Web interactive
+pandas>=2.0.0      # Tableaux de données (interface web)
 ```
 
 ---
 
 ## Utilisation
+
+### Interface Web (Streamlit) — Recommandée pour la démonstration
+
+```bash
+# Depuis le dossier log_sentinel/
+streamlit run app.py
+```
+
+Le tableau de bord s'ouvre automatiquement dans le navigateur (`http://localhost:8501`).
+
+**Fonctionnalités de l'interface web :**
+- 📂 Upload de fichier de log par glisser-déposer
+- 🧪 Bouton "Utiliser le fichier démo" (sample_access.log)
+- ⚙️ Paramètres configurables dans la barre latérale (seuils, OSINT)
+- 🚨 Tableau d'alertes filtrable par type d'attaque
+- 📈 Graphiques interactifs (Top IPs, codes HTTP, URIs, méthodes)
+- 🌍 Résultats OSINT avec géolocalisation IP
+- ⬇️ Téléchargement du rapport HTML en un clic
+
+---
+
+### Interface CLI (ligne de commande)
 
 ### Commande de base
 
