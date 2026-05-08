@@ -27,7 +27,7 @@ class LogViewsAgent:
     """
 
     def __init__(self) -> None:
-        api_key = os.environ.get("MISTRAL_API_KEY", "")
+        api_key = os.environ.get("MISTRAL_API_KEY") or os.environ.get("MISTRAL", "")
         self.available = _MISTRAL_OK and bool(api_key)
         self._client = _MistralClass(api_key=api_key) if self.available else None  # type: ignore[misc]
 
