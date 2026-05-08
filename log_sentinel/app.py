@@ -576,8 +576,8 @@ with onglet_rapport:
     if st.button("⚙️ Générer le rapport HTML", type="primary"):
         with st.spinner("Génération du rapport..."):
             try:
-                # Dossier de sortie dans reports/
-                output_dir = _BASE_DIR / "reports"
+                # Dossier de sortie dans /tmp (filesystem writable sur HF Spaces et en local)
+                output_dir = Path(tempfile.gettempdir()) / "log_sentinel_reports"
                 output_dir.mkdir(parents=True, exist_ok=True)
                 output_path = str(output_dir / "report.html")
 

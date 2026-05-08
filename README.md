@@ -1,3 +1,15 @@
+---
+title: Log Sentinel
+emoji: 🛡️
+colorFrom: blue
+colorTo: red
+sdk: streamlit
+sdk_version: "1.32.0"
+app_file: log_sentinel/app.py
+pinned: false
+license: mit
+---
+
 # Log Sentinel — Analyseur Intelligent de Logs (Blue Team)
 
 > Outil Python de cybersécurité défensive orienté **Blue Team** pour l'analyse automatique
