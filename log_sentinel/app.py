@@ -11,6 +11,7 @@ Utilisation :
 import sys
 import os
 import io
+import json
 import tempfile
 from pathlib import Path
 
@@ -21,6 +22,8 @@ except Exception:
     _WEASYPRINT_OK = False
 
 _BASE_DIR = Path(__file__).parent
+_STATS_FILE = _BASE_DIR / "reports" / "logviews_stats.json"
+_APP_URL = "https://mpigajesse-log-sentinel.hf.space/"
 sys.path.insert(0, str(_BASE_DIR))
 
 import streamlit as st
@@ -31,6 +34,12 @@ from src.detector import AttackDetector
 from src.statistics import LogStatistics
 from src.osint import OSINTChecker
 from src.reporter import HTMLReporter
+
+try:
+    from src.logviews import LogViewsAgent
+    _LOGVIEWS_IMPORT_OK = True
+except Exception:
+    _LOGVIEWS_IMPORT_OK = False
 
 
 # ---------------------------------------------------------------------------
@@ -570,6 +579,45 @@ hr { border-color: var(--cyan-border) !important; }
 .results-fade {
     animation: fadeInUp 0.4s ease forwards;
 }
+
+/* ── LogViews cards ──────────────────────────────────────── */
+.lv-ctx-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(167,139,250,0.3);
+    border-left: 3px solid #a78bfa;
+    border-radius: 4px;
+    padding: 14px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.80rem;
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+.lv-status-ok {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 14px;
+    border: 1px solid rgba(167,139,250,0.4);
+    border-radius: 3px;
+    background: rgba(167,139,250,0.08);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: #a78bfa;
+    letter-spacing: 1px;
+}
+.lv-status-ko {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 14px;
+    border: 1px solid rgba(251,191,36,0.4);
+    border-radius: 3px;
+    background: rgba(251,191,36,0.08);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: #fbbf24;
+    letter-spacing: 1px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -611,6 +659,99 @@ def _section_header(icon_name: str, label: str) -> str:
         f'&nbsp;{label}'
         f'</div>'
     )
+
+
+def _lire_compteur() -> int:
+    """Lit le nombre total d'analyses enregistrées dans le fichier de stats."""
+    try:
+        if _STATS_FILE.exists():
+            return json.loads(_STATS_FILE.read_text(encoding="utf-8")).get("analyses", 0)
+    except Exception:
+        pass
+    return 0
+
+
+def _incrementer_compteur() -> int:
+    """Incrémente le compteur d'analyses et retourne la nouvelle valeur."""
+    try:
+        _STATS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        stats = {"analyses": 0}
+        if _STATS_FILE.exists():
+            stats = json.loads(_STATS_FILE.read_text(encoding="utf-8"))
+        stats["analyses"] = stats.get("analyses", 0) + 1
+        _STATS_FILE.write_text(json.dumps(stats, ensure_ascii=False), encoding="utf-8")
+        return stats["analyses"]
+    except Exception:
+        return 0
+
+
+def _auto_analyser_logviews(res: dict) -> None:
+    """Déclenche LogViews automatiquement après chaque analyse.
+
+    Stocke le résultat dans st.session_state["lv_derniere_analyse"].
+    Échoue silencieusement si l'agent est indisponible.
+    """
+    if not _LOGVIEWS_IMPORT_OK:
+        return
+    agent = LogViewsAgent()
+    if not agent.available:
+        return
+    try:
+        numero = _incrementer_compteur()
+        contexte = _preparer_contexte_logviews(res, numero)
+        analyse = agent.analyser(contexte)
+        st.session_state["lv_derniere_analyse"] = analyse
+        st.session_state["lv_analyse_numero"] = numero
+    except Exception:
+        pass
+
+
+def _preparer_contexte_logviews(res: dict, numero: int = 0) -> str:
+    """Sérialise les résultats d'analyse en contexte textuel pour l'agent LogViews."""
+    alerts = res["alerts"]
+    stats = res["stats"]
+    score, label_r, _ = _calculer_score_risque(alerts, stats.get("error_rate", 0.0))
+
+    types_counts: dict[str, int] = {}
+    ips_suspectes: list[str] = []
+    vus: set[str] = set()
+    for a in alerts:
+        types_counts[a.attack_type] = types_counts.get(a.attack_type, 0) + 1
+        if a.ip and a.ip not in vus:
+            ips_suspectes.append(a.ip)
+            vus.add(a.ip)
+
+    num_str = f"N°{numero}" if numero else ""
+    lignes = [
+        f"=== Rapport LogViews {num_str} — Log Sentinel ===",
+        f"Application  : {_APP_URL}",
+        f"Fichier      : {res['nom_fichier']}",
+        f"Format       : {res['log_format'].upper()}",
+        f"Lignes lues  : {len(res['lines'])}",
+        f"Entrées      : {len(res['entries'])}",
+        f"Score risque : {score}/100 — {label_r}",
+        f"Alertes      : {len(alerts)}",
+        f"IPs uniques  : {stats.get('unique_ips', 0)}",
+        f"Taux erreur  : {stats.get('error_rate', 0.0):.1f}%",
+    ]
+
+    if types_counts:
+        lignes.append("\nRépartition des attaques :")
+        for t, n in sorted(types_counts.items(), key=lambda x: -x[1]):
+            lignes.append(f"  • {t.replace('_', ' ').title()} : {n}")
+
+    if ips_suspectes:
+        lignes.append(f"\nIPs suspectes ({len(ips_suspectes)}) : {', '.join(ips_suspectes[:10])}")
+
+    if res.get("osint_data"):
+        lignes.append("\nEnrichissement OSINT disponible :")
+        for ip, info in res["osint_data"].items():
+            lignes.append(
+                f"  • {ip} → {info.get('country','?')}, {info.get('city','?')} "
+                f"({info.get('isp','?')}) proxy={info.get('is_proxy', False)}"
+            )
+
+    return "\n".join(lignes)
 
 
 def _executer_pipeline(
@@ -782,10 +923,11 @@ st.markdown(
 # Navigation top-level
 # ---------------------------------------------------------------------------
 
-tab_analyse, tab_guide, tab_apropos = st.tabs([
+tab_analyse, tab_guide, tab_apropos, tab_logviews = st.tabs([
     "  Analyser  ",
     "  Guide  ",
     "  A propos  ",
+    "  LogViews AI  ",
 ])
 
 
@@ -846,6 +988,9 @@ with tab_analyse:
                     )
                 except Exception as e:
                     st.error(f"Erreur lors de l'analyse : {e}")
+            if "resultats" in st.session_state:
+                with st.spinner("LogViews analyse le rapport…"):
+                    _auto_analyser_logviews(st.session_state.resultats)
 
     if uploaded_file is not None:
         cle_fichier = f"{uploaded_file.name}_{uploaded_file.size}"
@@ -863,6 +1008,9 @@ with tab_analyse:
                     )
                 except Exception as e:
                     st.error(f"Erreur lors de l'analyse : {e}")
+            if "resultats" in st.session_state:
+                with st.spinner("LogViews analyse le rapport…"):
+                    _auto_analyser_logviews(st.session_state.resultats)
 
     # ── Affichage des résultats ────────────────────────────────────────────
     if "resultats" not in st.session_state:
@@ -1466,4 +1614,214 @@ with tab_apropos:
         </div>""",
         unsafe_allow_html=True,
     )
+
+
+# ===========================================================================
+# TAB : LOGVIEWS AI
+# ===========================================================================
+
+with tab_logviews:
+    st.markdown('<div class="results-fade">', unsafe_allow_html=True)
+
+    # ── En-tête ────────────────────────────────────────────────────────────
+    st.markdown(
+        f"""<div class="terminal-header" style="border-color:rgba(167,139,250,0.35);">
+            <div class="scan-overlay" style="background:linear-gradient(90deg,transparent,rgba(167,139,250,0.5),transparent)"></div>
+            <div style="display:flex;align-items:center;gap:14px">
+                {_icon("cpu", 32, "#a78bfa")}
+                <div>
+                    <div class="terminal-title" style="color:#a78bfa">
+                        LogViews<span class="blink-cursor" style="background:#a78bfa"></span>
+                    </div>
+                    <div class="terminal-subtitle terminal-prompt">
+                        Agent Mistral AI · Observabilité &amp; Analytics · Codestral
+                    </div>
+                </div>
+            </div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+
+    # ── Statut de l'agent ──────────────────────────────────────────────────
+    if not _LOGVIEWS_IMPORT_OK:
+        st.markdown(
+            """<div class="lv-status-ko">
+            &#9888;&nbsp; Paquet <code>mistralai</code> manquant —
+            <code>pip install mistralai&gt;=1.0.0</code>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+    else:
+        lv_agent = LogViewsAgent()
+
+        col_stat, col_info = st.columns([2, 3])
+        with col_stat:
+            if lv_agent.available:
+                st.markdown(
+                    '<div class="lv-status-ok">'
+                    '<span style="width:7px;height:7px;background:#a78bfa;border-radius:50%;'
+                    'display:inline-block;animation:live-pulse 1.8s ease-in-out infinite"></span>'
+                    '&nbsp;Agent connecté · ag_019e08…'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    '<div class="lv-status-ko">'
+                    '&#9888;&nbsp; MISTRAL_API_KEY absente'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+        with col_info:
+            st.markdown(
+                """<div style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:#6b7280;line-height:1.5;">
+                Modèle : <span style="color:#a78bfa">Codestral</span> &nbsp;·&nbsp;
+                temp : <span style="color:#a78bfa">0.7</span> &nbsp;·&nbsp;
+                max_tokens : <span style="color:#a78bfa">2048</span> &nbsp;·&nbsp;
+                top_p : <span style="color:#a78bfa">1</span>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+
+        st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+
+        # ── Compteur global ────────────────────────────────────────────────
+        total_analyses = _lire_compteur()
+        col_c1, col_c2, col_c3 = st.columns(3)
+        col_c1.metric("Analyses effectuées", f"{total_analyses:,}", help="Nombre total d'analyses soumises à LogViews depuis la mise en prod")
+        col_c2.metric("Application", "LIVE", help=_APP_URL)
+        col_c3.metric("Agent", "LogViews v1", help="Codestral — mistral-medium-latest")
+
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+        # ── Analyse à soumettre ────────────────────────────────────────────
+        st.markdown(
+            _section_header("activity", "Analyse en cours"),
+            unsafe_allow_html=True,
+        )
+
+        if "resultats" in st.session_state:
+            res_ctx = st.session_state.resultats
+            alerts_ctx = res_ctx["alerts"]
+            stats_ctx = res_ctx["stats"]
+            score_ctx, label_ctx, css_ctx = _calculer_score_risque(
+                alerts_ctx, stats_ctx.get("error_rate", 0.0)
+            )
+            st.markdown(
+                f"""<div class="lv-ctx-card">
+                    {_icon("file-text", 14, "#a78bfa")}
+                    &nbsp;<strong style="color:#f3f4f6">{res_ctx['nom_fichier']}</strong>
+                    &nbsp;&nbsp;—&nbsp;&nbsp;
+                    <span class="risk-box risk-{css_ctx}" style="padding:3px 10px;font-size:0.72em">
+                        {score_ctx}/100 {label_ctx}
+                    </span>
+                    <span style="color:#6b7280;margin-left:12px;font-size:0.78em">
+                        {len(alerts_ctx)} alertes &nbsp;·&nbsp;
+                        {stats_ctx.get('unique_ips', 0)} IPs &nbsp;·&nbsp;
+                        Format {res_ctx['log_format'].upper()}
+                    </span>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+
+            if lv_agent.available:
+                auto_ok = "lv_derniere_analyse" in st.session_state
+                if auto_ok:
+                    st.markdown(
+                        '<div class="lv-status-ok" style="margin-bottom:8px">'
+                        '<span style="width:7px;height:7px;background:#4ade80;border-radius:50%;'
+                        'display:inline-block"></span>'
+                        '&nbsp;Analyse automatique effectuée — voir ci-dessous'
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
+                if st.button(
+                    "Relancer l'analyse LogViews",
+                    type="primary" if not auto_ok else "secondary",
+                    help="Resoumet le rapport à LogViews (Codestral)",
+                ):
+                    with st.spinner("LogViews analyse le rapport… (Codestral)"):
+                        try:
+                            numero = _incrementer_compteur()
+                            analyse = lv_agent.analyser(
+                                _preparer_contexte_logviews(res_ctx, numero)
+                            )
+                            st.session_state["lv_derniere_analyse"] = analyse
+                            st.session_state["lv_analyse_numero"] = numero
+                        except RuntimeError as e:
+                            st.error(str(e))
+
+            else:
+                st.markdown(
+                    """<div class="lv-status-ko">
+                    &#9888;&nbsp; Définissez <code>MISTRAL_API_KEY</code> pour activer l'analyse.
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.markdown(
+                f"""<div style="padding:14px 18px;background:var(--bg-card);
+                border:1px solid var(--cyan-border);border-radius:4px;
+                display:flex;align-items:center;gap:10px;
+                font-family:monospace;font-size:0.82rem;color:#6b7280;">
+                {_icon("info", 16, "#a78bfa")}
+                Aucune analyse active. Chargez un fichier dans l'onglet
+                <strong style="color:#a78bfa">Analyser</strong> puis revenez ici.
+                </div>""",
+                unsafe_allow_html=True,
+            )
+
+        # ── Réponse de LogViews ────────────────────────────────────────────
+        if "lv_derniere_analyse" in st.session_state:
+            st.divider()
+            num_label = f"· Analyse N°{st.session_state['lv_analyse_numero']}" if st.session_state.get("lv_analyse_numero") else ""
+            st.markdown(
+                _section_header("cpu", f"Rapport LogViews — Codestral {num_label}"),
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f"""<div style="background:#0d1421;border:1px solid rgba(167,139,250,0.3);
+                border-left:3px solid #a78bfa;border-radius:4px;padding:20px 24px;
+                font-family:'JetBrains Mono',monospace;font-size:0.82rem;
+                color:#d1d5db;line-height:1.75;white-space:pre-wrap;">
+                {st.session_state['lv_derniere_analyse']}
+                </div>""",
+                unsafe_allow_html=True,
+            )
+            if st.button("Effacer l'analyse", help="Supprime le résultat affiché"):
+                del st.session_state["lv_derniere_analyse"]
+                st.rerun()
+
+        st.divider()
+
+        # ── Configuration de l'agent ───────────────────────────────────────
+        st.markdown(
+            _section_header("cpu", "Configuration de l'agent"),
+            unsafe_allow_html=True,
+        )
+        rows_cfg = "".join([
+            f"<tr><td style='color:#6b7280;padding:8px 12px'>{k}</td>"
+            f"<td style='color:#a78bfa;font-family:monospace;padding:8px 12px'>{v}</td></tr>"
+            for k, v in [
+                ("Agent ID",      "ag_019e08b1610c736d9255133090d6f877"),
+                ("Version",       "v0 — dernière"),
+                ("Modèle",        "Codestral (codestral-latest)"),
+                ("Temperature",   "0.7"),
+                ("Max tokens",    "2 048"),
+                ("Top P",         "1"),
+                ("Outils",        "Code · Image · Recherche · Recherche Premium"),
+                ("Format sortie", "Texte"),
+            ]
+        ])
+        st.markdown(
+            f"""<div style="background:#0d1421;border:1px solid rgba(167,139,250,0.2);
+            border-radius:4px;overflow:hidden;">
+            <table style="width:100%;border-collapse:collapse;
+            font-family:'JetBrains Mono',monospace;font-size:0.78rem;">
+            <tbody>{rows_cfg}</tbody></table></div>""",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
