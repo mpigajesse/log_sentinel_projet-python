@@ -57,7 +57,7 @@ class LogViewsAgent:
         self.available = _MISTRAL_OK and bool(api_key)
         self._client = _MistralClass(api_key=api_key) if self.available else None  # type: ignore[misc]
 
-    def analyser(self, contenu: str) -> str:
+    def analyser(self, contenu: str, model: str | None = None) -> str:
         """Envoie le rapport à LogViews et retourne son analyse.
 
         Lève RuntimeError si l'agent est indisponible ou si l'API échoue.
@@ -69,7 +69,7 @@ class LogViewsAgent:
             )
         try:
             response = self._client.chat.complete(  # type: ignore[union-attr]
-                model=_MODEL,
+                model=model or _MODEL,
                 messages=[
                     {"role": "system", "content": _SYSTEM_PROMPT},
                     {"role": "user",   "content": contenu},

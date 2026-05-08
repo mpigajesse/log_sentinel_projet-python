@@ -36,10 +36,11 @@ from src.osint import OSINTChecker
 from src.reporter import HTMLReporter
 
 try:
-    from src.logviews import LogViewsAgent
+    from src.logviews import LogViewsAgent, _MODEL as _LV_MODEL
     _LOGVIEWS_IMPORT_OK = True
 except Exception:
     _LOGVIEWS_IMPORT_OK = False
+    _LV_MODEL = "open-mistral-nemo"
 
 
 # ---------------------------------------------------------------------------
@@ -699,7 +700,7 @@ def _auto_analyser_logviews(res: dict) -> None:
     try:
         numero = _incrementer_compteur()
         contexte = _preparer_contexte_logviews(res, numero)
-        analyse = agent.analyser(contexte)
+        analyse = agent.analyser(contexte, model=st.session_state.get("lv_modele"))
         st.session_state["lv_derniere_analyse"] = analyse
         st.session_state["lv_analyse_numero"] = numero
     except Exception:
@@ -1697,6 +1698,42 @@ with tab_logviews:
                 unsafe_allow_html=True,
             )
 
+        # ── Sélecteur de modèle ────────────────────────────────────────────
+        _MODELES_LV = {
+            "open-mistral-nemo":     ("Gratuit · Rapide · Défaut",   "#4ade80"),
+            "open-mixtral-8x7b":     ("Gratuit · Plus puissant",     "#4ade80"),
+            "mistral-small-latest":  ("Payant · Haute qualité",      "#f59e0b"),
+            "mistral-medium-latest": ("Payant · Qualité maximale",   "#f59e0b"),
+        }
+        with st.expander("⚙ Choisir un modèle LogViews", expanded=False):
+            st.selectbox(
+                "Modèle Mistral",
+                options=list(_MODELES_LV.keys()),
+                index=list(_MODELES_LV.keys()).index(
+                    st.session_state.get("lv_modele", _LV_MODEL)
+                ) if st.session_state.get("lv_modele", _LV_MODEL) in _MODELES_LV else 0,
+                format_func=lambda m: f"{m}  —  {_MODELES_LV[m][0]}",
+                key="lv_modele",
+                help="Sélectionnez le modèle Mistral utilisé pour l'analyse LogViews",
+            )
+            modele_sel = st.session_state.get("lv_modele", _LV_MODEL)
+            tier_color = _MODELES_LV.get(modele_sel, ("", "#6b7280"))[1]
+            st.markdown(
+                f"""<div style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;
+                color:#6b7280;line-height:1.8;padding:4px 0">
+                Modèle actif : <span style="color:{tier_color}">{modele_sel}</span>
+                &nbsp;·&nbsp; {_MODELES_LV.get(modele_sel, ("—", ""))[0]}
+                </div>""",
+                unsafe_allow_html=True,
+            )
+            st.info(
+                "Testez différents modèles Mistral pour comparer la qualité des analyses "
+                "et évaluer lequel offre le meilleur rapport coût/pertinence pour votre contexte. "
+                "Les modèles **gratuits** (`open-mistral-nemo`, `open-mixtral-8x7b`) sont disponibles sans abonnement. "
+                "Les modèles **payants** (`mistral-small`, `mistral-medium`) offrent une précision accrue "
+                "— utile pour décider si un **fine-tuning** de LogViews sur vos propres logs est pertinent.",
+            )
+
         st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
         # ── Compteur global ────────────────────────────────────────────────
@@ -1750,16 +1787,18 @@ with tab_logviews:
                         '</div>',
                         unsafe_allow_html=True,
                     )
+                _modele_actif = st.session_state.get("lv_modele", _LV_MODEL)
                 if st.button(
                     "Relancer l'analyse LogViews",
                     type="primary" if not auto_ok else "secondary",
-                    help="Resoumet le rapport à LogViews (open-mistral-nemo)",
+                    help=f"Resoumet le rapport à LogViews ({_modele_actif})",
                 ):
-                    with st.spinner("LogViews analyse le rapport… (open-mistral-nemo)"):
+                    with st.spinner(f"LogViews analyse le rapport… ({_modele_actif})"):
                         try:
                             numero = _incrementer_compteur()
                             analyse = lv_agent.analyser(
-                                _preparer_contexte_logviews(res_ctx, numero)
+                                _preparer_contexte_logviews(res_ctx, numero),
+                                model=_modele_actif,
                             )
                             st.session_state["lv_derniere_analyse"] = analyse
                             st.session_state["lv_analyse_numero"] = numero
