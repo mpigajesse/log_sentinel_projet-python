@@ -10,9 +10,16 @@ Utilisation :
 
 import sys
 import os
+import io
 import tempfile
 from pathlib import Path
 from io import StringIO
+
+try:
+    from weasyprint import HTML as WeasyHTML
+    _WEASYPRINT_OK = True
+except Exception:
+    _WEASYPRINT_OK = False
 
 # Assure que les modules src/ sont trouvables peu importe le répertoire
 # de lancement de Streamlit.
@@ -567,13 +574,16 @@ with onglet_osint:
 # ==========================================================================
 
 with onglet_rapport:
-    st.markdown("### 📄 Générer le rapport HTML")
+    st.markdown("### 📄 Générer le rapport")
     st.markdown(
-        "Le rapport HTML est autonome (CSS intégré, aucune dépendance externe) "
-        "et contient l'ensemble des alertes, statistiques et le score de risque global."
+        "Le rapport contient l'ensemble des alertes, statistiques et le score de risque global. "
+        "Disponible en **HTML** (interactif) et **PDF** (impression / archivage)."
     )
 
-    if st.button("⚙️ Générer le rapport HTML", type="primary"):
+    if not _WEASYPRINT_OK:
+        st.warning("⚠️ Export PDF indisponible (WeasyPrint non chargé). L'export HTML reste fonctionnel.")
+
+    if st.button("⚙️ Générer le rapport", type="primary"):
         with st.spinner("Génération du rapport..."):
             try:
                 # Dossier de sortie dans /tmp (filesystem writable sur HF Spaces et en local)
@@ -592,19 +602,48 @@ with onglet_rapport:
                     output_path=output_path,
                 )
 
-                # Lecture pour le téléchargement
+                # Lecture du HTML généré
                 with open(chemin_rapport, "r", encoding="utf-8") as fh:
                     contenu_rapport = fh.read()
 
-                st.success(f"Rapport généré : `{chemin_rapport}`")
-                st.download_button(
-                    label="⬇️ Télécharger le rapport HTML",
-                    data=contenu_rapport,
-                    file_name="log_sentinel_report.html",
-                    mime="text/html",
-                )
+                st.success("Rapport généré avec succès.")
 
-                # Aperçu inline
+                # ── Boutons de téléchargement ──────────────────────────────
+                col_html, col_pdf = st.columns(2)
+
+                with col_html:
+                    st.download_button(
+                        label="⬇️ Télécharger HTML",
+                        data=contenu_rapport,
+                        file_name="log_sentinel_report.html",
+                        mime="text/html",
+                        use_container_width=True,
+                    )
+
+                with col_pdf:
+                    if _WEASYPRINT_OK:
+                        with st.spinner("Conversion PDF..."):
+                            try:
+                                pdf_buffer = io.BytesIO()
+                                WeasyHTML(string=contenu_rapport).write_pdf(pdf_buffer)
+                                pdf_buffer.seek(0)
+                                st.download_button(
+                                    label="⬇️ Télécharger PDF",
+                                    data=pdf_buffer.getvalue(),
+                                    file_name="log_sentinel_report.pdf",
+                                    mime="application/pdf",
+                                    use_container_width=True,
+                                )
+                            except Exception as pdf_err:
+                                st.error(f"Erreur PDF : {pdf_err}")
+                    else:
+                        st.button(
+                            "⬇️ PDF (indisponible)",
+                            disabled=True,
+                            use_container_width=True,
+                        )
+
+                # Aperçu inline du rapport HTML
                 st.markdown("#### Aperçu du rapport")
                 st.components.v1.html(contenu_rapport, height=600, scrolling=True)
 
