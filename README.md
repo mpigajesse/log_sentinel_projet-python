@@ -31,6 +31,15 @@ un tableau de bord terminal **Rich** et un **rapport HTML** autonome.
 
 ---
 
+## Auteurs
+
+| Nom | Rôle | Formation |
+|-----|------|-----------|
+| **Naomie NGWIDJOMBY MOUSSAVOU** | Auteure principale | Master 1 Cybersécurité |
+| **Jesse MPIGA-ODOUMBA** ✓ | Co-auteur | Ingénieur généraliste — Systèmes Industriels & Intelligents, option IA & Big Data (juin 2026) · Administrateur Système & Sécurité des Réseaux |
+
+---
+
 ## Fonctionnalités
 
 | Fonctionnalité | Description |
@@ -47,6 +56,19 @@ un tableau de bord terminal **Rich** et un **rapport HTML** autonome.
 | OSINT | Géolocalisation IP via `ip-api.com` |
 | Rapport HTML | Dashboard complet, score de risque, dark theme |
 | **Interface Web** | **Tableau de bord Streamlit interactif** |
+
+---
+
+## Feuille de route
+
+- [x] Détection multi-vecteurs (SQLi, XSS, Brute-Force, Scan, Path Traversal, Command Injection)
+- [x] Export rapport HTML & PDF
+- [x] Enrichissement OSINT (ip-api.com)
+- [x] Interface web Streamlit déployée sur Hugging Face Spaces
+- [ ] Intégration d'agents IA pour l'analyse automatisée et la corrélation d'événements
+- [ ] Réponse aux incidents en temps réel
+- [ ] Support de formats de logs supplémentaires (Windows Event Log, JSON)
+- [ ] Tableau de bord multi-fichiers
 
 ---
 
@@ -278,11 +300,16 @@ OK
 
 ---
 
-## Auteur
+## Contribuer — Open Source
 
-| Champ | Détail |
-|-------|--------|
-| **Nom** | NAOMIE NGWIDJOMBY MOUSSAVOU |
-| **Module** | Python / Master 1 Cybersécurité |
-| **Thème** | Analyse de Logs / Blue Team |
-| **Date de remise** | 1 avril 2026 |
+Ce projet est open source. Si vous souhaitez l'améliorer, l'adapter à vos besoins ou proposer de nouvelles fonctionnalités, les contributions sont les bienvenues.
+
+**Demo live :** https://mpigajesse-log-sentinel.hf.space/
+
+1. Fork ce dépôt
+2. Créez votre branche (`git checkout -b feature/ma-fonctionnalite`)
+3. Committez vos changements (`git commit -m 'feat: ma fonctionnalite'`)
+4. Poussez votre branche (`git push origin feature/ma-fonctionnalite`)
+5. Ouvrez une Pull Request
+
+Toute amélioration est la bienvenue — que ce soit une correction de bug, une nouvelle détection, ou l'intégration d'agents IA.

@@ -5,11 +5,14 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
+    libglib2.0-0 \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
+    libpangocairo-1.0-0 \
     libharfbuzz0b \
     libfontconfig1 \
     libcairo2 \
+    libgdk-pixbuf2.0-0 \
     fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
