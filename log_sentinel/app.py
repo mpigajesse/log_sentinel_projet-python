@@ -1675,10 +1675,9 @@ with tab_logviews:
         with col_info:
             st.markdown(
                 """<div style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:#6b7280;line-height:1.5;">
-                Modèle : <span style="color:#a78bfa">Codestral</span> &nbsp;·&nbsp;
-                temp : <span style="color:#a78bfa">0.7</span> &nbsp;·&nbsp;
-                max_tokens : <span style="color:#a78bfa">2048</span> &nbsp;·&nbsp;
-                top_p : <span style="color:#a78bfa">1</span>
+                Modèle : <span style="color:#a78bfa">open-mistral-nemo</span> &nbsp;·&nbsp;
+                Tier : <span style="color:#4ade80">gratuit</span> &nbsp;·&nbsp;
+                API : <span style="color:#a78bfa">chat.complete</span>
                 </div>""",
                 unsafe_allow_html=True,
             )
@@ -1806,11 +1805,8 @@ with tab_logviews:
             for k, v in [
                 ("Agent ID",      "ag_019e08b1610c736d9255133090d6f877"),
                 ("Version",       "v0 — dernière"),
-                ("Modèle",        "Codestral (codestral-latest)"),
-                ("Temperature",   "0.7"),
-                ("Max tokens",    "2 048"),
-                ("Top P",         "1"),
-                ("Outils",        "Code · Image · Recherche · Recherche Premium"),
+                ("Modèle",        "open-mistral-nemo (free tier)"),
+                ("API",           "chat.complete()"),
                 ("Format sortie", "Texte"),
             ]
         ])
