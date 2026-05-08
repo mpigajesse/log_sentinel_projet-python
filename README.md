@@ -56,6 +56,28 @@ un tableau de bord terminal **Rich** et un **rapport HTML** autonome.
 | OSINT | Géolocalisation IP via `ip-api.com` |
 | Rapport HTML | Dashboard complet, score de risque, dark theme |
 | **Interface Web** | **Tableau de bord Streamlit interactif** |
+| **LogViews AI** ✦ | **Agent Mistral AI (open-mistral-nemo) — analyse automatique des logs soumis** |
+
+---
+
+## LogViews AI — Observabilité & Analyse Intelligente ✦ *nouveau*
+
+Un agent Mistral AI est intégré directement dans l'interface Streamlit (onglet **✦ LogViews AI**).
+
+| Aspect | Détail |
+|--------|--------|
+| Modèle | `open-mistral-nemo` (free tier Mistral) |
+| Déclenchement | Automatique à chaque analyse de fichier |
+| Langue | Français |
+| Sortie | Niveau de risque · Patterns suspects · Recommandations |
+
+### Comparaison Système vs Agent
+
+La section **Comparaison** affiche côte à côte :
+- L'analyse **système** (règles + heuristiques) : score de risque, alertes, IPs, types d'attaques
+- L'analyse **agent** (LogViews AI) : rapport textuel structuré
+
+Un formulaire d'évaluation (note 1–5, cohérence, actionnabilité) permet d'enregistrer les retours dans `reports/logviews_evals.json` pour décider d'un éventuel fine-tuning ou changement de modèle.
 
 ---
 
@@ -207,7 +229,7 @@ python main.py -f access.log --output-dir ./output
 |  | |__| (_) | (_| |  ___) |/ _ \ '_ \| __| | '_ \ / _ \|                   |
 |  |_____\___/ \__, | |____/ \  __/ | | | |_| | | | |  __/|                   |
 |              |___/                                                          |
-|    Blue Team Security Analyzer  |  v1.0.0                                   |
+|    Blue Team Security Analyzer  |  v1.1.0                                   |
 +-----------------------------------------------------------------------------+
 
  Fichier chargé : samples/sample_access.log

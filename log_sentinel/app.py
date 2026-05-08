@@ -927,7 +927,7 @@ tab_analyse, tab_guide, tab_apropos, tab_logviews = st.tabs([
     "  Analyser  ",
     "  Guide  ",
     "  A propos  ",
-    "  LogViews AI  ",
+    "  ✦ LogViews AI  ",
 ])
 
 
@@ -1440,7 +1440,7 @@ with tab_apropos:
             </div>
             <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:#6b7280;
             letter-spacing:0.18em;text-transform:uppercase;">
-            v1.0.0 &nbsp;&#9670;&nbsp; Blue Team Security Analyzer</div>
+            v1.1.0 &nbsp;&#9670;&nbsp; Blue Team Security Analyzer &nbsp;&#9670;&nbsp; LogViews AI</div>
             <div style="width:48px;height:2px;background:linear-gradient(90deg,#00d4ff,transparent);margin-top:14px;"></div>
         </div>""",
         unsafe_allow_html=True,
@@ -1486,7 +1486,7 @@ with tab_apropos:
                 {''.join([f"""<span style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);
                 border-radius:4px;padding:5px 14px;font-family:'JetBrains Mono',monospace;
                 font-size:0.75rem;color:#4ade80;">{tech}</span>""" for tech in [
-                    'Python 3.13','Streamlit','WeasyPrint','Docker','Hugging Face Spaces',
+                    'Python 3.13','Streamlit','Mistral AI','WeasyPrint','Docker','Hugging Face Spaces',
                 ]])}
             </div>
         </div>""",
@@ -1583,10 +1583,11 @@ with tab_apropos:
                 <div style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:#00d4ff;
                 letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">Futures ameliorations</div>
                 <p style="font-family:'JetBrains Mono',monospace;font-size:0.83rem;color:#cbd5e1;line-height:1.75;margin:0;">
-                    Integration d'<strong style="color:#00d4ff;">agents IA</strong> pour l'analyse automatisee,
-                    correlation d'evenements multi-sources, et reponse aux incidents en temps reel.
-                    Support de formats supplementaires (Windows Event Log, JSON).
-                    Tableau de bord multi-fichiers.
+                    <span style="color:#4ade80;">&#10003; LogViews AI livré</span> — agent Mistral AI
+                    (<code>open-mistral-nemo</code>) intégré pour l'observabilité et la comparaison
+                    système vs agent.<br><br>
+                    Prochaines étapes : corrélation d'événements multi-sources,
+                    support Windows Event Log &amp; JSON, tableau de bord multi-fichiers.
                 </p>
             </div>
         </div>""",
@@ -1622,6 +1623,20 @@ with tab_apropos:
 
 with tab_logviews:
     st.markdown('<div class="results-fade">', unsafe_allow_html=True)
+
+    # ── Badge nouvelle fonctionnalité ──────────────────────────────────────
+    st.markdown(
+        """<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;
+        padding:10px 16px;background:linear-gradient(135deg,rgba(167,139,250,0.08),rgba(124,58,237,0.06));
+        border:1px solid rgba(167,139,250,0.3);border-radius:6px;">
+            <span style="width:8px;height:8px;background:#a78bfa;border-radius:50%;
+            display:inline-block;animation:live-pulse 1.2s ease-in-out infinite;flex-shrink:0;"></span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;
+            color:#a78bfa;letter-spacing:0.15em;text-transform:uppercase;">
+            Nouvelle fonctionnalité — LogViews AI intégré · open-mistral-nemo · v1.1.0</span>
+        </div>""",
+        unsafe_allow_html=True,
+    )
 
     # ── En-tête ────────────────────────────────────────────────────────────
     st.markdown(
@@ -1791,6 +1806,106 @@ with tab_logviews:
             if st.button("Effacer l'analyse", help="Supprime le résultat affiché"):
                 del st.session_state["lv_derniere_analyse"]
                 st.rerun()
+
+        # ── Comparaison Système vs LogViews AI ────────────────────────────
+        if "resultats" in st.session_state and "lv_derniere_analyse" in st.session_state:
+            st.divider()
+            st.markdown(
+                _section_header("bar-chart-2", "Comparaison : Analyse Système vs Agent LogViews"),
+                unsafe_allow_html=True,
+            )
+
+            _res_cmp = st.session_state.resultats
+            _alerts_cmp = _res_cmp["alerts"]
+            _stats_cmp = _res_cmp["stats"]
+            _score_cmp, _label_cmp, _css_cmp = _calculer_score_risque(
+                _alerts_cmp, _stats_cmp.get("error_rate", 0.0)
+            )
+            _atk_counts: dict[str, int] = {}
+            for _a in _alerts_cmp:
+                _atk_counts[_a.attack_type] = _atk_counts.get(_a.attack_type, 0) + 1
+            _top_atk = sorted(_atk_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+
+            col_sys, col_ai = st.columns(2)
+            with col_sys:
+                _rows_sys = "".join(
+                    f"<tr><td style='color:#6b7280;padding:5px 0;font-size:0.76rem'>{k}</td>"
+                    f"<td style='color:#f1f5f9;text-align:right;font-size:0.76rem'>{v}</td></tr>"
+                    for k, v in [
+                        ("Alertes totales", len(_alerts_cmp)),
+                        ("IPs uniques", _stats_cmp.get("unique_ips", 0)),
+                        (f"Taux d'erreur", f"{_stats_cmp.get('error_rate',0):.1f}%"),
+                    ] + [(f"↗ {at}", f"{cnt}x") for at, cnt in _top_atk]
+                )
+                st.markdown(
+                    f"""<div style="background:#0d1421;border:1px solid rgba(0,212,255,0.3);
+                    border-radius:8px;padding:20px 22px;min-height:220px;">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:0.70rem;
+                    color:#00d4ff;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:14px;">
+                    🖥 Analyse Système</div>
+                    <span class="risk-box risk-{_css_cmp}" style="padding:3px 12px;font-size:0.74em;">
+                    {_score_cmp}/100 {_label_cmp}</span>
+                    <table style="width:100%;border-collapse:collapse;margin-top:12px;
+                    font-family:'JetBrains Mono',monospace;">{_rows_sys}</table>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+            with col_ai:
+                _lv_preview = st.session_state["lv_derniere_analyse"]
+                _lv_short = (_lv_preview[:420] + "…") if len(_lv_preview) > 420 else _lv_preview
+                st.markdown(
+                    f"""<div style="background:#0d1421;border:1px solid rgba(167,139,250,0.3);
+                    border-radius:8px;padding:20px 22px;min-height:220px;">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:0.70rem;
+                    color:#a78bfa;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:14px;">
+                    🤖 Analyse LogViews</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:0.76rem;
+                    color:#cbd5e1;line-height:1.65;white-space:pre-wrap;">{_lv_short}</div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+
+            st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+            st.markdown(
+                f"""<div style="background:#0d1421;border:1px solid rgba(74,222,128,0.25);
+                border-radius:8px;padding:18px 22px;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.70rem;color:#4ade80;
+                letter-spacing:0.18em;text-transform:uppercase;margin-bottom:10px;">
+                Évaluation — Fine-tuning LogViews</div>
+                <p style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:#94a3b8;margin:0;">
+                Notez la pertinence de l'agent pour décider d'un fine-tuning ou d'un changement de modèle.</p>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+            col_note, col_flags = st.columns([2, 1])
+            with col_note:
+                _note = st.slider(
+                    "Pertinence de l'analyse agent (1 = hors sujet · 5 = parfait)",
+                    1, 5, 3,
+                    key="lv_eval_note",
+                )
+            with col_flags:
+                _coherent = st.checkbox("Mêmes menaces identifiées", key="lv_eval_coherent")
+                _recomm_ok = st.checkbox("Recommandations actionnables", key="lv_eval_recomm")
+            if st.button("Enregistrer l'évaluation", key="lv_eval_save", type="secondary"):
+                import datetime as _dt, json as _json
+                _eval_path = _BASE_DIR / "reports" / "logviews_evals.json"
+                _evals = []
+                if _eval_path.exists():
+                    try:
+                        _evals = _json.loads(_eval_path.read_text(encoding="utf-8"))
+                    except Exception:
+                        _evals = []
+                _evals.append({
+                    "timestamp": _dt.datetime.utcnow().isoformat(),
+                    "fichier": _res_cmp.get("nom_fichier", ""),
+                    "score_systeme": _score_cmp,
+                    "note_agent": int(_note),
+                    "menaces_identiques": bool(_coherent),
+                    "recommandations_ok": bool(_recomm_ok),
+                })
+                _eval_path.write_text(_json.dumps(_evals, ensure_ascii=False, indent=2), encoding="utf-8")
+                st.success(f"Évaluation N°{len(_evals)} enregistrée — merci !")
 
         st.divider()
 
