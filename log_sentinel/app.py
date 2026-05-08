@@ -1634,7 +1634,7 @@ with tab_logviews:
                         LogViews<span class="blink-cursor" style="background:#a78bfa"></span>
                     </div>
                     <div class="terminal-subtitle terminal-prompt">
-                        Agent Mistral AI · Observabilité &amp; Analytics · Codestral
+                        Agent Mistral AI · Observabilité &amp; Analytics · open-mistral-nemo
                     </div>
                 </div>
             </div>
@@ -1668,7 +1668,7 @@ with tab_logviews:
             else:
                 st.markdown(
                     '<div class="lv-status-ko">'
-                    '&#9888;&nbsp; MISTRAL_API_KEY absente'
+                    '&#9888;&nbsp; Clé API absente (var&nbsp;<code>MISTRAL</code>&nbsp;non définie)'
                     '</div>',
                     unsafe_allow_html=True,
                 )
@@ -1689,7 +1689,7 @@ with tab_logviews:
         col_c1, col_c2, col_c3 = st.columns(3)
         col_c1.metric("Analyses effectuées", f"{total_analyses:,}", help="Nombre total d'analyses soumises à LogViews depuis la mise en prod")
         col_c2.metric("Application", "LIVE", help=_APP_URL)
-        col_c3.metric("Agent", "LogViews v1", help="Codestral — mistral-medium-latest")
+        col_c3.metric("Agent", "LogViews v1", help="open-mistral-nemo — free tier")
 
         st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
@@ -1738,9 +1738,9 @@ with tab_logviews:
                 if st.button(
                     "Relancer l'analyse LogViews",
                     type="primary" if not auto_ok else "secondary",
-                    help="Resoumet le rapport à LogViews (Codestral)",
+                    help="Resoumet le rapport à LogViews (open-mistral-nemo)",
                 ):
-                    with st.spinner("LogViews analyse le rapport… (Codestral)"):
+                    with st.spinner("LogViews analyse le rapport… (open-mistral-nemo)"):
                         try:
                             numero = _incrementer_compteur()
                             analyse = lv_agent.analyser(
@@ -1754,7 +1754,7 @@ with tab_logviews:
             else:
                 st.markdown(
                     """<div class="lv-status-ko">
-                    &#9888;&nbsp; Définissez <code>MISTRAL_API_KEY</code> pour activer l'analyse.
+                    &#9888;&nbsp; Définissez le secret <code>MISTRAL</code> dans les paramètres HF Spaces pour activer l'analyse.
                     </div>""",
                     unsafe_allow_html=True,
                 )
@@ -1776,7 +1776,7 @@ with tab_logviews:
             st.divider()
             num_label = f"· Analyse N°{st.session_state['lv_analyse_numero']}" if st.session_state.get("lv_analyse_numero") else ""
             st.markdown(
-                _section_header("cpu", f"Rapport LogViews — Codestral {num_label}"),
+                _section_header("cpu", f"Rapport LogViews — open-mistral-nemo {num_label}"),
                 unsafe_allow_html=True,
             )
             st.markdown(
